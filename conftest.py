@@ -1,29 +1,37 @@
+# conftest.py
 import pytest
 import requests
-import random
-import string
-from urls import USER_REGISTER, USER_DATA
+from helpers import generate_random_string
+from data import Urls
 
-def generate_random_string(length=10):
-    return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
+@pytest.fixture(scope="function")
+def created_user():
+    """
+    Создает нового пользователя, возвращает его данные и токен.
+    После завершения теста удаляет созданного пользователя.
+    """
+    email = f"{generate_random_string()}@ya.ru"
+    password = generate_random_string()
+    name = generate_random_string()
 
-@pytest.fixture
-def user_payload():
-    """Генерирует случайные данные пользователя."""
-    return {
-        "email": f"{generate_random_string()}@yandex.ru",
-        "password": "password123",
-        "name": "Tester"
+    payload = {
+        "email": email,
+        "password": password,
+        "name": name
     }
-
-@pytest.fixture
-def created_user(user_payload):
-    """Регистрирует пользователя и удаляет его после теста."""
-    response = requests.post(USER_REGISTER, json=user_payload)
+    
+    response = requests.post(Urls.USER_REGISTER, json=payload)
     token = response.json().get("accessToken")
     
-    yield user_payload, token  # Передаем данные в тест
+    # Передаем данные в тест
+    yield payload, token
     
-    # Удаление (Teardown): выполнится ПОСЛЕ теста
+    # Очистка после теста
     if token:
-        requests.delete(USER_DATA, headers={"Authorization": token})
+        requests.delete(Urls.USER_DATA, headers={"Authorization": token})
+
+@pytest.fixture(scope="session")
+def ingredient_ids():
+    """Получает и возвращает список реальных хешей ингредиентов."""
+    response = requests.get(Urls.INGREDIENTS)
+    return [item["_id"] for item in response.json()["data"]]
