@@ -8,7 +8,7 @@ from data import Urls
 def created_user():
     """
     Создает нового пользователя, возвращает его данные и токен.
-    После завершения теста удаляет созданного пользователя.
+    ПОСЛЕ ЗАВЕРШЕНИЯ ТЕСТА УДАЛЯЕТ СОЗДАННОГО ПОЛЬЗОВАТЕЛЯ.
     """
     email = f"{generate_random_string()}@ya.ru"
     password = generate_random_string()
@@ -20,13 +20,14 @@ def created_user():
         "name": name
     }
     
+    # Шаг 1: Создание пользователя (Setup)
     response = requests.post(Urls.USER_REGISTER, json=payload)
     token = response.json().get("accessToken")
     
-    # Передаем данные в тест
+    # Шаг 2: Передача данных в тест
     yield payload, token
     
-    # Очистка после теста
+    # Шаг 3: Очистка после теста (Teardown)
     if token:
         requests.delete(Urls.USER_DATA, headers={"Authorization": token})
 

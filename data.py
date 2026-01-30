@@ -12,8 +12,9 @@ class Urls:
 class UserData:
     """Класс для хранения данных, связанных с пользователем."""
     CREATE_USER_MISSING_FIELD_ERROR = "Email, password and name are required fields"
-    USER_ALREADY_EXISTS_ERROR = "User with such email already exists"
-    LOGIN_WRONG_CREDENTIALS_ERROR = "You should be authorised" # У API именно такой ответ
+    # ИСПРАВЛЕНИЕ ЗДЕСЬ: Обновили текст ошибки в соответствии с ответом API
+    USER_ALREADY_EXISTS_ERROR = "User already exists"
+    LOGIN_WRONG_CREDENTIALS_ERROR = "You should be authorised"
     UPDATE_UNAUTHORIZED_ERROR = "You should be authorised"
 
 class OrderData:
