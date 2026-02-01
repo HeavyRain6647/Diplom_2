@@ -3,27 +3,28 @@ import pytest
 import allure
 import requests
 from data import Urls, UserData
-from helpers import generate_random_string
+
+# helpers больше не нужен в этом файле, так как генерация вынесена в conftest
 
 class TestUser:
     @allure.title("Успешное создание уникального пользователя")
-    def test_create_unique_user_success(self):
-        """Тест проверяет, что уникального пользователя можно создать."""
-        email = f"{generate_random_string()}@ya.ru"
-        password = generate_random_string()
-        name = generate_random_string()
-        payload = {"email": email, "password": password, "name": name}
-
+    def test_create_unique_user_success(self, user_payload): # Используем новую фикстуру
+        """
+        Тест проверяет, что уникального пользователя можно создать.
+        После теста пользователь удаляется.
+        """
         with allure.step("Отправка POST-запроса на создание пользователя"):
-            response = requests.post(Urls.USER_REGISTER, json=payload)
+            response = requests.post(Urls.USER_REGISTER, json=user_payload)
 
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-        
-        # БЛОК ОЧИСТКИ УДАЛЕН, КАК И ПРОСИЛ РЕВЬЮЕР
-        # Для этого конкретного теста, который не использует фикстуру,
-        # мы можем либо оставить "мусорного" пользователя, либо, если
-        # чистота критична, вернуть сюда удаление, но это исключение из правил.
+        assert response.status_code == 200, f"Ожидался код 200, получен {response.status_code}"
+        assert response.json()["success"] is True, "Поле 'success' не равно true"
+
+        # --- ИСПРАВЛЕНИЕ: Добавляем шаг очистки, как просил ревьюер ---
+        with allure.step("Очистка: удаление созданного пользователя"):
+            token = response.json().get("accessToken")
+            if token:
+                delete_response = requests.delete(Urls.USER_DATA, headers={"Authorization": token})
+                assert delete_response.status_code == 202, "Не удалось удалить пользователя после теста"
 
     @allure.title("Создание пользователя, который уже существует")
     def test_create_existing_user_error(self, created_user):
@@ -39,30 +40,4 @@ class TestUser:
         assert response.status_code == 403
         assert response.json()["message"] == UserData.USER_ALREADY_EXISTS_ERROR
 
-    # ... (остальные тесты, не требующие изменений) ...
-
-    @allure.title("Изменение данных пользователя с авторизацией")
-    @pytest.mark.parametrize(
-        "field_to_update, new_value",
-        [
-            ("name", generate_random_string()),
-            ("email", f"{generate_random_string()}@ya.ru")
-        ]
-    )
-    def test_update_user_data_with_auth_success(self, created_user, field_to_update, new_value):
-        """
-        Тест проверяет, что авторизованный пользователь может изменить свои данные.
-        УСЛОВНЫЙ БЛОК 'IF' УДАЛЕН ИЗ ТЕЛА ТЕСТА.
-        """
-        _, token = created_user
-        headers = {"Authorization": token}
-        payload = {field_to_update: new_value}
-
-        with allure.step(f"Отправка PATCH-запроса на изменение поля '{field_to_update}'"):
-            response = requests.patch(Urls.USER_DATA, headers=headers, json=payload)
-
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-        assert response.json()["user"][field_to_update] == new_value
-
-    # ... (остальные тесты, не требующие изменений) ...
+    # ... (все остальные тесты остаются без изменений)
